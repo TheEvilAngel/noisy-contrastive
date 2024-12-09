@@ -21,7 +21,7 @@ from utils import adjust_learning_rate, AverageMeter, ProgressMeter, save_checkp
 
 
 parser = argparse.ArgumentParser('arguments for training')
-parser.add_argument('--data_root', default='~/data', type=str, help='path to dataset directory')
+parser.add_argument('--data_root', default='./data', type=str, help='path to dataset directory')
 parser.add_argument('--exp_dir', default='./save', type=str, help='path to experiment directory')
 parser.add_argument('--dataset', default='cifar10', type=str, help='path to dataset', choices=["cifar10", "cifar100"])
 parser.add_argument('--noise_type', default='sym', type=str, help='noise type: sym or asym', choices=["sym", "asym"])
@@ -80,7 +80,7 @@ else:
 
 def set_model(args):
     model = SimSiam(args.m, args)
-    model.cuda()
+    model.cuda(args.gpu) # 也要是对应的gpu
     return model
 
 
