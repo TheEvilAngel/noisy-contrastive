@@ -127,14 +127,14 @@ class SimSiam(nn.Module):
                 'resnet101': ResNet101(),
                 'resnet152': ResNet152()}[backbone_name]
 
-    def forward(self, im_aug1, im_aug2, img_weak):
+    def forward(self, im_aug1, im_aug2, img_weak): # 两个强变换的图片，一个弱变换的图片
         output = self.probability(img_weak)
 
         z1 = self.encoder(im_aug1)
         p1 = self.predictor(z1)
-        p1 = nn.functional.normalize(p1, dim=1)
+        p1 = nn.functional.normalize(p1, dim=1) # 每个像素点的通道归一化
 
-        with torch.no_grad():  # no gradient to keys
+        with torch.no_grad():  # no gradient to keys, 不污染
             m = self.emam
             for param_q, param_k in zip(self.encoder.parameters(), self.encoder_k.parameters()):
                 param_k.data = param_k.data * m + param_q.data * (1. - m)
