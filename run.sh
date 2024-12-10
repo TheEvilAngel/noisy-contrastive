@@ -3,7 +3,7 @@
 ################
 
 ### noise ratio = 0%
-python -u main.py --data_root ./data --dataset cifar10 --lr 0.02 --lamb 50 --tau 0.8 --r 0 --noise_type sym --gpu 1
+python -u main.py --data_root ./data --dataset cifar10 --lr 0.02 --lamb 50 --tau 0.8 --r 0 --noise_type sym --gpu 5
 
 ### sym noise ratio = 20%
 python -u main.py --data_root /data --dataset cifar10  --lr 0.02 --lamb 50 -- tau 0.4 --r 0.2 --noise_type sym

@@ -5,7 +5,7 @@ from os import path, makedirs
 import numpy as np
 import torch
 from torch import optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 from torch.backends import cudnn
@@ -27,7 +27,7 @@ parser.add_argument('--dataset', default='cifar10', type=str, help='path to data
 parser.add_argument('--noise_type', default='sym', type=str, help='noise type: sym or asym', choices=["sym", "asym"])
 parser.add_argument('--r', type=float, default=0.8, help='noise level')
 parser.add_argument('--trial', type=str, default='1', help='trial id')
-parser.add_argument('--img_dim', default=32, type=int)
+parser.add_argument('--img_dim', default=28, type=int)
 
 parser.add_argument('--arch', default='resnet18', help='model name is used for training')
 parser.add_argument('--batch_size', type=int, default=256, help='batch_size')
@@ -94,102 +94,134 @@ def set_model(args):
     model.cuda(args.gpu) # 也要是对应的gpu
     return model
 
-
-
+# 2. 加载数据
 def set_loader(args):
-    if args.dataset == 'cifar10':
-        train_transforms = transforms.Compose([
-            transforms.RandomResizedCrop(args.img_dim, scale=(0.2, 1.)),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomApply([
-                transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
-            ], p=0.8),
-            transforms.RandomGrayscale(p=0.2),
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)) # CIFAR-10自带的均值和标准差
-        ])
+    train_data = torch.load(args.data_root + '/train.pt')
+    test_data = torch.load(args.data_root + '/test.pt')
+    
+    train_transforms = transforms.Compose([
+        transforms.RandomResizedCrop(args.img_dim, scale=(0.2, 1.)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomApply([
+            transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
+        ], p=0.8),
+        transforms.RandomGrayscale(p=0.2),
+        transforms.ToTensor(),
+        transforms.Normalize(train_data['mean'], train_data['std']) # CIFAR-10自带的均值和标准差
+    ])
+    
+    train_cls_transformcon = transforms.Compose([
+        transforms.RandomResizedCrop(32),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(train_data['mean'], train_data['std'])])
+    
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(test_data['mean'], test_data['std'])])
 
-        train_cls_transformcon = transforms.Compose([
-            transforms.RandomResizedCrop(32),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
-        
-        # 必备
-        test_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
+    train_dataset = TensorDataset(train_data['mean'], train_data['labels'])
+    test_dataset = TensorDataset(test_data['mean'], test_data['labels'])
 
-        train_set = CIFAR10N(root=args.data_root,
-                             transform=ThreeCropsTransform(train_transforms, train_cls_transformcon),
-                             noise_type=args.noise_type,
-                             r=args.r)
-
-        val_set = copy.deepcopy(train_set)
-        val_set.transform = test_transform
-        val_loader = DataLoader(dataset=val_set,
-                                batch_size=128,
-                                shuffle=False,
-                                num_workers=args.num_workers)
-
-        test_data = datasets.CIFAR10(root=args.data_root, train=False, transform=test_transform, download=True)
-
-        train_loader = DataLoader(dataset=train_set,
-                                  batch_size=args.batch_size,
-                                  shuffle=True,
-                                  num_workers=args.num_workers, # 子进程数目
-                                  pin_memory=True,
-                                  drop_last=True)
-
-        test_loader = DataLoader(test_data, batch_size=128, shuffle=False, num_workers=args.num_workers,
-                                 pin_memory=True)
-    elif args.dataset == 'cifar100':
-        train_transforms = transforms.Compose([
-            transforms.RandomResizedCrop(args.img_dim, scale=(0.2, 1.)),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomApply([
-                transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
-            ], p=0.8),
-            transforms.RandomGrayscale(p=0.2),
-            transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.267, 0.256, 0.276))
-        ])
-
-        train_cls_transformcon = transforms.Compose([
-            transforms.RandomResizedCrop(32),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5071, 0.4865, 0.4409], [0.267, 0.256, 0.276])])
-
-        test_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize([0.5071, 0.4865, 0.4409], [0.267, 0.256, 0.276])])
-
-        train_set = CIFAR100N(root=args.data_root,
-                              transform=ThreeCropsTransform(train_transforms, train_cls_transformcon),
-                              noise_type=args.noise_type,
-                              r=args.r)
-
-        val_set = copy.deepcopy(train_set)
-        val_set.transform = test_transform
-        val_loader = DataLoader(dataset=val_set,
-                                batch_size=128,
-                                shuffle=False,
-                                num_workers=args.num_workers)
-
-        test_data = datasets.CIFAR100(root=args.data_root, train=False, transform=test_transform, download=True)
-
-        train_loader = DataLoader(dataset=train_set,
-                                  batch_size=args.batch_size,
-                                  shuffle=True,
-                                  num_workers=args.num_workers,
-                                  pin_memory=True,
-                                  drop_last=True)
-
-        test_loader = DataLoader(test_data, batch_size=128, shuffle=False, num_workers=args.num_workers,
-                                 pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
 
     return train_loader, test_loader
+
+# def set_loader(args):
+#     if args.dataset == 'cifar10':
+#         train_transforms = transforms.Compose([
+#             transforms.RandomResizedCrop(args.img_dim, scale=(0.2, 1.)),
+#             transforms.RandomHorizontalFlip(),
+#             transforms.RandomApply([
+#                 transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
+#             ], p=0.8),
+#             transforms.RandomGrayscale(p=0.2),
+#             transforms.ToTensor(),
+#             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)) # CIFAR-10自带的均值和标准差
+#         ])
+
+#         train_cls_transformcon = transforms.Compose([
+#             transforms.RandomResizedCrop(32),
+#             transforms.RandomHorizontalFlip(),
+#             transforms.ToTensor(),
+#             transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
+        
+#         # 必备
+#         test_transform = transforms.Compose([
+#             transforms.ToTensor(),
+#             transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
+
+#         train_set = CIFAR10N(root=args.data_root,
+#                              transform=ThreeCropsTransform(train_transforms, train_cls_transformcon),
+#                              noise_type=args.noise_type,
+# #                              r=args.r)
+
+#         val_set = copy.deepcopy(train_set)
+#         val_set.transform = test_transform
+#         val_loader = DataLoader(dataset=val_set,
+#                                 batch_size=128,
+#                                 shuffle=False,
+#                                 num_workers=args.num_workers)
+
+#         test_data = datasets.CIFAR10(root=args.data_root, train=False, transform=test_transform, download=True)
+
+#         train_loader = DataLoader(dataset=train_set,
+#                                   batch_size=args.batch_size,
+#                                   shuffle=True,
+#                                   num_workers=args.num_workers, # 子进程数目
+#                                   pin_memory=True,
+#                                   drop_last=True)
+
+#         test_loader = DataLoader(test_data, batch_size=128, shuffle=False, num_workers=args.num_workers,
+#                                  pin_memory=True)
+#     elif args.dataset == 'cifar100':
+#         train_transforms = transforms.Compose([
+#             transforms.RandomResizedCrop(args.img_dim, scale=(0.2, 1.)),
+#             transforms.RandomHorizontalFlip(),
+#             transforms.RandomApply([
+#                 transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
+#             ], p=0.8),
+#             transforms.RandomGrayscale(p=0.2),
+#             transforms.ToTensor(),
+#             transforms.Normalize((0.5071, 0.4865, 0.4409), (0.267, 0.256, 0.276))
+#         ])
+
+#         train_cls_transformcon = transforms.Compose([
+#             transforms.RandomResizedCrop(32),
+#             transforms.RandomHorizontalFlip(),
+#             transforms.ToTensor(),
+#             transforms.Normalize([0.5071, 0.4865, 0.4409], [0.267, 0.256, 0.276])])
+
+#         test_transform = transforms.Compose([
+#             transforms.ToTensor(),
+#             transforms.Normalize([0.5071, 0.4865, 0.4409], [0.267, 0.256, 0.276])])
+
+#         train_set = CIFAR100N(root=args.data_root,
+#                               transform=ThreeCropsTransform(train_transforms, train_cls_transformcon),
+#                               noise_type=args.noise_type,
+#                               r=args.r)
+
+#         val_set = copy.deepcopy(train_set)
+#         val_set.transform = test_transform
+#         val_loader = DataLoader(dataset=val_set,
+#                                 batch_size=128,
+#                                 shuffle=False,
+#                                 num_workers=args.num_workers)
+
+#         test_data = datasets.CIFAR100(root=args.data_root, train=False, transform=test_transform, download=True)
+
+#         train_loader = DataLoader(dataset=train_set,
+#                                   batch_size=args.batch_size,
+#                                   shuffle=True,
+#                                   num_workers=args.num_workers,
+#                                   pin_memory=True,
+#                                   drop_last=True)
+
+#         test_loader = DataLoader(test_data, batch_size=128, shuffle=False, num_workers=args.num_workers,
+#                                  pin_memory=True)
+
+#     return train_loader, test_loader
 
 
 
