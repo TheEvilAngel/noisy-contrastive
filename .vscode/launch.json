@@ -13,6 +13,7 @@
             "args": [
                 "--data_root", "./data",
                  "--exp_dir", "./save",
+                 "--dataset", "imagenet",
                  "--lr", "0.02",
                  "--lamb", "8.0",
                  "--tau", "0.05",

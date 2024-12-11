@@ -1,5 +1,5 @@
 ### sym noise ratio = 40%
-python -u main_firsttest.py --data_root ./data --exp_dir ./save --lr 0.02 --lamb 8.0 --tau 0.05 --r 0.4 --type gce --beta 0.6 --gpu 0 --epochs 2
+python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet --lr 0.02 --lamb 8.0 --tau 0.05 --r 0.4 --type gce --beta 0.6 --gpu 4 --epochs 2
 
 
 ################

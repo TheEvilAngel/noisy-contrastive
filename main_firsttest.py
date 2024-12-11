@@ -24,7 +24,7 @@ from utils import adjust_learning_rate, AverageMeter, ProgressMeter, save_checkp
 parser = argparse.ArgumentParser('arguments for training')
 parser.add_argument('--data_root', default='./data', type=str, help='path to dataset directory')
 parser.add_argument('--exp_dir', default='./save', type=str, help='path to experiment directory')
-parser.add_argument('--dataset', default='cifar10', type=str, help='path to dataset', choices=["cifar10", "cifar100"])
+parser.add_argument('--dataset', default='imagenet', type=str, help='path to dataset', choices=["cifar10", "cifar100", "imagenet"])
 parser.add_argument('--noise_type', default='sym', type=str, help='noise type: sym or asym', choices=["sym", "asym"])
 parser.add_argument('--r', type=float, default=0.8, help='noise level')
 parser.add_argument('--trial', type=str, default='1', help='trial id')
@@ -57,6 +57,8 @@ if args.dataset == 'cifar10':
     args.nb_classes = 10
 elif args.dataset == 'cifar100':
     args.nb_classes = 100
+elif args.dataset == 'imagenet':
+    args.nb_classes = 50
 
 
 class GCE_loss(nn.Module):
