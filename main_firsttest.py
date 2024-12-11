@@ -107,6 +107,10 @@ def set_loader(args):
     train_mean, train_std, train_labels = train_data['mean'], train_data['std'], train_data['labels']
     test_mean, test_std = test_data['mean'], test_data['std']
 
+    # 更改精度
+    train_mean, train_std = train_mean.to(torch.float32), train_std.to(torch.float32)
+    test_mean, test_std = test_mean.to(torch.float32), test_std.to(torch.float32)
+    
     # 构造隐空间增广
     latent_transform = LatentThreeCropsTransform(noise_std=0.05, scale_range=(0.95, 1.05))
 
@@ -231,7 +235,7 @@ def load_model(model_path, args):
     model = set_model(args)  # 初始化模型
     checkpoint = torch.load(model_path, map_location=f"cuda:{args.gpu}")
     model.load_state_dict(checkpoint['state_dict'])
-    model = model.to(torch.bfloat16)
+    # model = model.to(torch.bfloat16)
     model.cuda(args.gpu)
     model.eval()  # 设置为评估模式
     print(f"Loaded model from {model_path}")
@@ -266,7 +270,7 @@ def main():
     model = set_model(args)
     
     '''模型转换为bfloat16'''
-    model = model.to(torch.bfloat16)
+    # model = model.to(torch.bfloat16)
 
     optimizer = optim.SGD(model.parameters(),
                           lr=args.lr,
