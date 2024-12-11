@@ -1,5 +1,5 @@
 ### sym noise ratio = 40%
-python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet --lr 0.02 --lamb 8.0 --tau 0.05 --r 0.4 --type gce --beta 0.6 --gpu 4 --epochs 2
+python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet --lr 0.02 --lamb 8.0 --tau 0.05 --r 0.4 --type gce --beta 0.6 --gpu 0 --epochs 2
 
 
 ################
@@ -7,7 +7,7 @@ python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagen
 ################
 
 ### noise ratio = 0%
-python -u main.py --data_root ./data --dataset cifar10 --lr 0.02 --lamb 50 --tau 0.8 --r 0 --noise_type sym --gpu 5
+python -u main.py --data_root ./data --dataset cifar10 --lr 0.02 --lamb 50 --tau 0.8 --r 0 --noise_type sym --gpu 4
 
 ### sym noise ratio = 20%
 python -u main.py --data_root /data --dataset cifar10  --lr 0.02 --lamb 50 -- tau 0.4 --r 0.2 --noise_type sym

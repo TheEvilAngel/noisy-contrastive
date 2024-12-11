@@ -231,6 +231,7 @@ def load_model(model_path, args):
     model = set_model(args)  # 初始化模型
     checkpoint = torch.load(model_path, map_location=f"cuda:{args.gpu}")
     model.load_state_dict(checkpoint['state_dict'])
+    model = model.to(torch.bfloat16)
     model.cuda(args.gpu)
     model.eval()  # 设置为评估模式
     print(f"Loaded model from {model_path}")
@@ -301,12 +302,14 @@ def main():
     save_model(epoch, model, optimizer, best_loss, last_model_path, msg="Last model saved in {} epoch".format(epoch))
     
     # 使用最佳模型进行预测
+    best_model_path = "save/20241211-045011/best_model.pth"
     print("Predicting using the best model...")
     best_model = load_model(best_model_path, args)
     best_results = predict_test_set(test_loader, best_model)
     save_predictions_to_csv(best_results, path.join(exp_dir, "best_model_predictions.csv"))
 
     # 使用最后的模型进行预测
+    last_model_path = "save/20241211-045011/last_model.pth"
     print("Predicting using the last model...")
     last_model = load_model(last_model_path, args)
     last_results = predict_test_set(test_loader, last_model)
