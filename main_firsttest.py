@@ -261,7 +261,9 @@ def main():
     train_loader, test_loader = set_loader(args)
 
     model = set_model(args)
-
+    
+    '''模型转换为bfloat16'''
+    model = model.to(torch.bfloat16)
 
     optimizer = optim.SGD(model.parameters(),
                           lr=args.lr,
