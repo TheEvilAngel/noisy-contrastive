@@ -1,4 +1,0 @@
-dataset: cifar10	 noise_type: sym	 noise_ratio: 0.0 	lamb: 50.0	 tau: 0.8	 type: ce 	 seed: 123 	 best_acc: 94.30379746835443	last_acc: 94.09612341772151
-dataset: cifar10	 noise_type: sym	 noise_ratio: 0.4 	lamb: 90.0	 tau: 0.4	 type: ce 	 seed: 123 	 best_acc: 92.23694620253164	last_acc: 92.21716772151899
-dataset: imagenet	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.05	 type: gce 	 beta:0.6	 seed: 123
-dataset: imagenet	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.05	 type: gce 	 beta:0.6	 seed: 123

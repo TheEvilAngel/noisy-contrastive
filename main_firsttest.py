@@ -24,7 +24,7 @@ from utils import adjust_learning_rate, AverageMeter, ProgressMeter, save_checkp
 parser = argparse.ArgumentParser('arguments for training')
 parser.add_argument('--data_root', default='./data', type=str, help='path to dataset directory')
 parser.add_argument('--exp_dir', default='./save', type=str, help='path to experiment directory')
-parser.add_argument('--dataset', default='imagenet', type=str, help='path to dataset', choices=["cifar10", "cifar100", "imagenet"])
+parser.add_argument('--dataset', default='imagenet', type=str, help='path to dataset', choices=["cifar10", "cifar100", "imagenet10", "imagenet100"])
 parser.add_argument('--noise_type', default='sym', type=str, help='noise type: sym or asym', choices=["sym", "asym"])
 parser.add_argument('--r', type=float, default=0.8, help='noise level')
 parser.add_argument('--trial', type=str, default='1', help='trial id')
@@ -57,7 +57,9 @@ if args.dataset == 'cifar10':
     args.nb_classes = 10
 elif args.dataset == 'cifar100':
     args.nb_classes = 100
-elif args.dataset == 'imagenet':
+elif args.dataset == 'imagenet100':
+    args.nb_classes = 50
+elif args.dataset == 'imagenet10':
     args.nb_classes = 50
 
 
@@ -254,7 +256,7 @@ def save_model(epoch, model, optimizer, best_loss, filename, msg):
     
 def create_exp_dir(base_dir="./save"):
     """创建基于时间戳的实验文件夹"""
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    timestamp = time.strftime("%Y%m%d-%H%M%S") + '-' + args.dataset + '-' + args.type + '-' + args.noise_type
     exp_dir = path.join(base_dir, timestamp)
     makedirs(exp_dir, exist_ok=True)
     print(f"Experiment directory created: {exp_dir}")
@@ -284,9 +286,7 @@ def main():
 
     start_epoch = 0
 
-
     best_loss = float('inf')  # 初始化为正无穷
-    best_model_path = path.join(exp_dir, "best_model.pth")
     last_model_path = path.join(exp_dir, "last_model.pth")
 
     for epoch in range(start_epoch, args.epochs):
@@ -299,21 +299,32 @@ def main():
         time0 = time.time()
         train_loss = train(train_loader, model, criterion, optimizer, epoch, args)
         print("Train \tEpoch:{}/{}\ttime: {}\tLoss: {}".format(epoch, args.epochs, time.time()-time0, train_loss))
-        if train_loss < best_loss:
-            best_loss = train_loss
-            save_model(epoch, model, optimizer, best_loss, best_model_path, msg="Best model saved in {} epoch".format(epoch))
+        
+        if epoch % 50 == 0:
+            model_path = path.join(exp_dir, f"model_{epoch}.pth")
+            save_model(epoch, model, optimizer, train_loss, model_path, msg="Model saved in {} epoch".format(epoch))
+            if train_loss < best_loss:
+                best_loss = train_loss
+                best_epoch = epoch
     
-    save_model(epoch, model, optimizer, best_loss, last_model_path, msg="Last model saved in {} epoch".format(epoch))
+    save_model(epoch, model, optimizer, train_loss, last_model_path, msg="Last model saved in {} epoch".format(epoch))
+    
+    # 对每个模型进行预测
+    for epoch in range(0, args.epochs, 50):
+        print("Predicting using the {} model.", format(epoch))
+        model_path = path.join(exp_dir, f"model_{epoch}.pth")
+        model = load_model(model_path, args)
+        results = predict_test_set(test_loader, model)
+        save_predictions_to_csv(results, path.join(exp_dir, f"model_{epoch}_predictions.csv"))
     
     # 使用最佳模型进行预测
-    best_model_path = "save/20241211-045011/best_model.pth"
     print("Predicting using the best model...")
+    best_model_path = path.join(exp_dir, f"model_{best_epoch}.pth")
     best_model = load_model(best_model_path, args)
     best_results = predict_test_set(test_loader, best_model)
     save_predictions_to_csv(best_results, path.join(exp_dir, "best_model_predictions.csv"))
 
     # 使用最后的模型进行预测
-    last_model_path = "save/20241211-045011/last_model.pth"
     print("Predicting using the last model...")
     last_model = load_model(last_model_path, args)
     last_results = predict_test_set(test_loader, last_model)
