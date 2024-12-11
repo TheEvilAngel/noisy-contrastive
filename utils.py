@@ -3,6 +3,29 @@ import torch
 from PIL import ImageFilter
 import random
 
+import torch
+
+class LatentThreeCropsTransform:
+    """在隐空间中生成三个变换后的版本"""
+    def __init__(self, noise_std=0.1, scale_range=(0.9, 1.1)):
+        self.noise_std = noise_std
+        self.scale_range = scale_range
+
+    def __call__(self, mean, std):
+        # 原始版本
+        crop1 = mean.clone()
+
+        # 增广版本1：添加高斯噪声并且缩放
+        noise = torch.randn_like(mean) * self.noise_std
+        scale = torch.empty_like(mean).uniform_(*self.scale_range)
+        crop2 = (mean + noise)*scale
+        
+        # 增广版本1：相同进行增广
+        noise = torch.randn_like(mean) * self.noise_std
+        scale = torch.empty_like(mean).uniform_(*self.scale_range)
+        crop3 = (mean + noise)*scale
+
+        return crop2, crop3, crop1
 
 class TwoCropsTransform:
     """Take two random crops of one image as the query and key."""
@@ -121,6 +144,7 @@ def accuracy(output, target, topk=(1,)):
             correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
+
 
 def load_checkpoint(model, model_ema, optimizer, filename):
     checkpoint = torch.load(filename, map_location='cuda:0')

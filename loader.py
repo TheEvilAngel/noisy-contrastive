@@ -12,6 +12,32 @@ from torchvision.datasets import CIFAR10, CIFAR100
 import math
 import random
 
+# 自定义Dataset
+class VAEAugmentedDataset(torch.utils.data.Dataset):
+    def __init__(self, mean, std, labels=None, transform=None):
+        self.mean = mean
+        self.std = std
+        self.labels = labels
+        self.transform = transform
+
+    def __len__(self):
+        return self.mean.size(0)
+
+    def __getitem__(self, idx):
+        mean = self.mean[idx]
+        std = self.std[idx]
+        if self.labels is not None:
+            label = self.labels[idx]
+        else:
+            label = None
+
+        if self.transform:
+            # 训练数据或增广数据
+            crop1, crop2, crop3 = self.transform(mean, std)
+            return [crop1, crop2, crop3], label, idx
+        else:
+            # 测试数据只返回特征和索引
+            return mean, idx
 
 
 def corrupted_labels(targets, r = 0.4, noise_type='sym'):

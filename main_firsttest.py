@@ -14,10 +14,11 @@ from torchvision import transforms
 import copy
 import torch.nn as nn
 from simsiam.model_factory import SimSiam
+import pandas as pd
 
 
-from loader import CIFAR10N, CIFAR100N
-from utils import adjust_learning_rate, AverageMeter, ProgressMeter, save_checkpoint, accuracy, load_checkpoint, ThreeCropsTransform
+from loader import CIFAR10N, CIFAR100N, VAEAugmentedDataset
+from utils import adjust_learning_rate, AverageMeter, ProgressMeter, save_checkpoint, accuracy, load_checkpoint, ThreeCropsTransform, LatentThreeCropsTransform
 
 
 parser = argparse.ArgumentParser('arguments for training')
@@ -96,134 +97,40 @@ def set_model(args):
 
 # 2. 加载数据
 def set_loader(args):
-    train_data = torch.load(args.data_root + '/train.pt')
-    test_data = torch.load(args.data_root + '/test.pt')
-    
-    train_transforms = transforms.Compose([
-        transforms.RandomResizedCrop(args.img_dim, scale=(0.2, 1.)),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomApply([
-            transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
-        ], p=0.8),
-        transforms.RandomGrayscale(p=0.2),
-        transforms.ToTensor(),
-        transforms.Normalize(train_data['mean'], train_data['std']) # CIFAR-10自带的均值和标准差
-    ])
-    
-    train_cls_transformcon = transforms.Compose([
-        transforms.RandomResizedCrop(32),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(train_data['mean'], train_data['std'])])
-    
-    test_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(test_data['mean'], test_data['std'])])
+    # 加载VAE生成的数据
+    train_data = torch.load(path.join(args.data_root, 'train.pt'))
+    test_data = torch.load(path.join(args.data_root, 'test.pt'))
 
-    train_dataset = TensorDataset(train_data['mean'], train_data['labels'])
-    test_dataset = TensorDataset(test_data['mean'], test_data['labels'])
+    # 提取字段
+    train_mean, train_std, train_labels = train_data['mean'], train_data['std'], train_data['labels']
+    test_mean, test_std = test_data['mean'], test_data['std']
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+    # 构造隐空间增广
+    latent_transform = LatentThreeCropsTransform(noise_std=0.05, scale_range=(0.95, 1.05))
+
+    # 构造训练和测试集
+    train_set = VAEAugmentedDataset(train_mean, train_std, train_labels, transform=latent_transform)
+    test_set = VAEAugmentedDataset(test_mean, test_std)
+
+    # DataLoader
+    train_loader = DataLoader(
+        dataset=train_set,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        drop_last=True,
+    )
+
+    test_loader = DataLoader(
+        dataset=test_set,
+        batch_size=128,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=True,
+    )
 
     return train_loader, test_loader
-
-# def set_loader(args):
-#     if args.dataset == 'cifar10':
-#         train_transforms = transforms.Compose([
-#             transforms.RandomResizedCrop(args.img_dim, scale=(0.2, 1.)),
-#             transforms.RandomHorizontalFlip(),
-#             transforms.RandomApply([
-#                 transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
-#             ], p=0.8),
-#             transforms.RandomGrayscale(p=0.2),
-#             transforms.ToTensor(),
-#             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)) # CIFAR-10自带的均值和标准差
-#         ])
-
-#         train_cls_transformcon = transforms.Compose([
-#             transforms.RandomResizedCrop(32),
-#             transforms.RandomHorizontalFlip(),
-#             transforms.ToTensor(),
-#             transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
-        
-#         # 必备
-#         test_transform = transforms.Compose([
-#             transforms.ToTensor(),
-#             transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])])
-
-#         train_set = CIFAR10N(root=args.data_root,
-#                              transform=ThreeCropsTransform(train_transforms, train_cls_transformcon),
-#                              noise_type=args.noise_type,
-# #                              r=args.r)
-
-#         val_set = copy.deepcopy(train_set)
-#         val_set.transform = test_transform
-#         val_loader = DataLoader(dataset=val_set,
-#                                 batch_size=128,
-#                                 shuffle=False,
-#                                 num_workers=args.num_workers)
-
-#         test_data = datasets.CIFAR10(root=args.data_root, train=False, transform=test_transform, download=True)
-
-#         train_loader = DataLoader(dataset=train_set,
-#                                   batch_size=args.batch_size,
-#                                   shuffle=True,
-#                                   num_workers=args.num_workers, # 子进程数目
-#                                   pin_memory=True,
-#                                   drop_last=True)
-
-#         test_loader = DataLoader(test_data, batch_size=128, shuffle=False, num_workers=args.num_workers,
-#                                  pin_memory=True)
-#     elif args.dataset == 'cifar100':
-#         train_transforms = transforms.Compose([
-#             transforms.RandomResizedCrop(args.img_dim, scale=(0.2, 1.)),
-#             transforms.RandomHorizontalFlip(),
-#             transforms.RandomApply([
-#                 transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
-#             ], p=0.8),
-#             transforms.RandomGrayscale(p=0.2),
-#             transforms.ToTensor(),
-#             transforms.Normalize((0.5071, 0.4865, 0.4409), (0.267, 0.256, 0.276))
-#         ])
-
-#         train_cls_transformcon = transforms.Compose([
-#             transforms.RandomResizedCrop(32),
-#             transforms.RandomHorizontalFlip(),
-#             transforms.ToTensor(),
-#             transforms.Normalize([0.5071, 0.4865, 0.4409], [0.267, 0.256, 0.276])])
-
-#         test_transform = transforms.Compose([
-#             transforms.ToTensor(),
-#             transforms.Normalize([0.5071, 0.4865, 0.4409], [0.267, 0.256, 0.276])])
-
-#         train_set = CIFAR100N(root=args.data_root,
-#                               transform=ThreeCropsTransform(train_transforms, train_cls_transformcon),
-#                               noise_type=args.noise_type,
-#                               r=args.r)
-
-#         val_set = copy.deepcopy(train_set)
-#         val_set.transform = test_transform
-#         val_loader = DataLoader(dataset=val_set,
-#                                 batch_size=128,
-#                                 shuffle=False,
-#                                 num_workers=args.num_workers)
-
-#         test_data = datasets.CIFAR100(root=args.data_root, train=False, transform=test_transform, download=True)
-
-#         train_loader = DataLoader(dataset=train_set,
-#                                   batch_size=args.batch_size,
-#                                   shuffle=True,
-#                                   num_workers=args.num_workers,
-#                                   pin_memory=True,
-#                                   drop_last=True)
-
-#         test_loader = DataLoader(test_data, batch_size=128, shuffle=False, num_workers=args.num_workers,
-#                                  pin_memory=True)
-
-#     return train_loader, test_loader
-
-
 
 def train(train_loader, model, criterion, optimizer, epoch,  args):
     batch_time = AverageMeter('Time', ':6.3f') # 定义输出格式
@@ -236,7 +143,7 @@ def train(train_loader, model, criterion, optimizer, epoch,  args):
     model.train() # 变成训练模式
 
     end = time.time()
-    for i, (images, targets, _, index) in enumerate(train_loader):
+    for i, (images, targets, index) in enumerate(train_loader):
         bsz = targets.size(0) # batch size
         
         # images为ThreeCropsTransform中生成的三个图片
@@ -294,35 +201,63 @@ def train(train_loader, model, criterion, optimizer, epoch,  args):
     return losses.avg
 
 
-
-
-def validation(test_loader, model, epoch, args):
-    batch_time = AverageMeter('Time', ':6.3f')
-    acc = AverageMeter('Loss', ':.4e')
-
+def predict_test_set(test_loader, model):
     model.eval()
-    end = time.time()
+    results = []
+    
     with torch.no_grad():
-        for i, (images, targets) in enumerate(test_loader):
+        for features, index in test_loader:
             if args.gpu is not None:
-                images = images.cuda(args.gpu, non_blocking=True)
-                targets = targets.cuda(args.gpu, non_blocking=True)
-                # targets = targets.cuda(args.gpu, non_blocking=True)
-            # compute output
-            outputs = model.forward_test(images)
-            acc2 = accuracy(outputs, targets, topk=(1,))
+                features = features.cuda(args.gpu, non_blocking=True)
+            outputs = model.forward_test(features)  # 前向推理
+            predicted_labels = outputs.argmax(dim=1).cpu().numpy()  # 获取预测标签
+            index = index.numpy()  # 转换索引为numpy
+            for idx, label in zip(index, predicted_labels):
+                results.append({"index": idx, "labels": label})
+    
+    return results
 
-            # measure elapsed time
-            acc.update(acc2[0].item(), images[0].size(0))
-            batch_time.update(time.time() - end)
-            end = time.time()
 
-    return acc.avg
+def save_predictions_to_csv(results, output_file):
+    df = pd.DataFrame(results)
+    df.to_csv(output_file, index=False)
+    print(f"Predictions saved to {output_file}")
 
+
+def load_model(model_path, args):
+    """加载保存的模型"""
+    model = set_model(args)  # 初始化模型
+    checkpoint = torch.load(model_path, map_location=f"cuda:{args.gpu}")
+    model.load_state_dict(checkpoint['state_dict'])
+    model.cuda(args.gpu)
+    model.eval()  # 设置为评估模式
+    print(f"Loaded model from {model_path}")
+    return model
+
+
+def save_model(epoch, model, optimizer, best_loss, filename, msg):
+    state = {
+        'epoch': epoch,
+        'state_dict': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'best_loss': best_loss
+    }
+    torch.save(state, filename)
+    print(msg)
+    
+def create_exp_dir(base_dir="./save"):
+    """创建基于时间戳的实验文件夹"""
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    exp_dir = path.join(base_dir, timestamp)
+    makedirs(exp_dir, exist_ok=True)
+    print(f"Experiment directory created: {exp_dir}")
+    return exp_dir
 
 def main():
     print(vars(args))
 
+    exp_dir = create_exp_dir(args.exp_dir)
+    
     train_loader, test_loader = set_loader(args)
 
     model = set_model(args)
@@ -341,8 +276,9 @@ def main():
     start_epoch = 0
 
 
-    # routine
-    best_acc = 0.0
+    best_loss = float('inf')  # 初始化为正无穷
+    best_model_path = path.join(exp_dir, "best_model.pth")
+    last_model_path = path.join(exp_dir, "last_model.pth")
 
     for epoch in range(start_epoch, args.epochs):
         epoch_optim = epoch
@@ -354,20 +290,29 @@ def main():
         time0 = time.time()
         train_loss = train(train_loader, model, criterion, optimizer, epoch, args)
         print("Train \tEpoch:{}/{}\ttime: {}\tLoss: {}".format(epoch, args.epochs, time.time()-time0, train_loss))
+        if train_loss < best_loss:
+            best_loss = train_loss
+            save_model(epoch, model, optimizer, best_loss, best_model_path, msg="Best model saved in {} epoch".format(epoch))
+    
+    save_model(epoch, model, optimizer, best_loss, last_model_path, msg="Last model saved in {} epoch".format(epoch))
+    
+    # 使用最佳模型进行预测
+    print("Predicting using the best model...")
+    best_model = load_model(best_model_path, args)
+    best_results = predict_test_set(test_loader, best_model)
+    save_predictions_to_csv(best_results, path.join(exp_dir, "best_model_predictions.csv"))
 
-        time0 = time.time()
-        val_top1_acc = validation(test_loader, model, epoch, args)
-        print("Test\tEpoch:{}/{}\t time: {}\tAcc: {}".format(epoch, args.epochs, time.time()-time0, val_top1_acc))
-        best_acc = max(best_acc, val_top1_acc)
-
-        # scheduler.step()
-
+    # 使用最后的模型进行预测
+    print("Predicting using the last model...")
+    last_model = load_model(last_model_path, args)
+    last_results = predict_test_set(test_loader, last_model)
+    save_predictions_to_csv(last_results, path.join(exp_dir, "last_model_predictions.csv"))
 
     with open('log.txt', 'a') as f:
         if args.type == 'ce':
-            f.write('dataset: {}\t noise_type: {}\t noise_ratio: {} \tlamb: {}\t tau: {}\t type: ce \t seed: {} \t best_acc: {}\tlast_acc: {}\n'.format(args.dataset, args.noise_type, args.r, args.lamb, args.tau, args.seed, best_acc, val_top1_acc))
+            f.write('dataset: {}\t noise_type: {}\t noise_ratio: {} \tlamb: {}\t tau: {}\t type: ce \t seed: {}\n'.format(args.dataset, args.noise_type, args.r, args.lamb, args.tau, args.seed))
         elif args.type == 'gce':
-            f.write('dataset: {}\t noise_type: {}\t noise_ratio: {} \tlamb: {}\t tau: {}\t type: gce \t beta:{}\t seed: {} \t best_acc: {}\tlast_acc: {}\n'.format(args.dataset, args.noise_type, args.r, args.lamb, args.tau, args.beta, args.seed, best_acc, val_top1_acc))
+            f.write('dataset: {}\t noise_type: {}\t noise_ratio: {} \tlamb: {}\t tau: {}\t type: gce \t beta:{}\t seed: {}\n'.format(args.dataset, args.noise_type, args.r, args.lamb, args.tau, args.beta, args.seed))
 
 
 if __name__ == '__main__':
