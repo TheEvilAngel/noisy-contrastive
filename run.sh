@@ -17,9 +17,11 @@ python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagen
 ### asym noise ratio = 40% CIFAR100 CE 20241211-082118 tmux[5]
 python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet10 --lr 0.04 --lamb 170 --tau 0.05 --r 0.4 --noise_type asym --gpu 5
 
+### sym noise ratio = 40% CIFAR100 GCE 20241211-070946 tmux[6]
+python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet100 --lr 0.002 --lamb 8.0 --tau 0.05 --r 0.4 --type gce --beta 0.6 --gpu 0
 
-
-
+### sym noise ratio = 40% CIFAR100 GCE 20241211-070946 tmux[7]
+python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet100 --lr 0.0002 --lamb 8.0 --tau 0.05 --r 0.4 --type gce --beta 0.6 --gpu 0
 
 
 ### sym noise ratio = 40% CIFAR-100
