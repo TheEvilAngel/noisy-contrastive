@@ -1,0 +1,17 @@
+dataset: imagenet10	 noise_type: asym	 noise_ratio: 0.4 	lamb: 170.0	 tau: 0.05	 type: ce 	 seed: 123
+dataset: imagenet10	 noise_type: asym	 noise_ratio: 0.4 	lamb: 50.0	 tau: 0.4	 type: ce 	 seed: 123
+dataset: imagenet10	 noise_type: sym	 noise_ratio: 0.4 	lamb: 90.0	 tau: 0.4	 type: ce 	 seed: 123
+dataset: imagenet10	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.4	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 130.0	 tau: 0.05	 type: ce 	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.05	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.05	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.05	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.05	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.35	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.25	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.3	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.05	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.05	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.15	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.1	 type: gce 	 beta:0.6	 seed: 123
+dataset: imagenet100	 noise_type: sym	 noise_ratio: 0.4 	lamb: 8.0	 tau: 0.2	 type: gce 	 beta:0.6	 seed: 123

@@ -18,7 +18,7 @@ import pandas as pd
 
 
 from loader import CIFAR10N, CIFAR100N, VAEAugmentedDataset
-from utils import adjust_learning_rate, AverageMeter, ProgressMeter, save_checkpoint, accuracy, load_checkpoint, ThreeCropsTransform, LatentThreeCropsTransform
+from utils import adjust_learning_rate, AverageMeter, ProgressMeter, save_checkpoint, accuracy, load_checkpoint, ThreeCropsTransform, LatentThreeCropsTransform, LatentThreeCropsTransformSame
 
 
 parser = argparse.ArgumentParser('arguments for training')
@@ -114,7 +114,7 @@ def set_loader(args):
     test_mean, test_std = test_mean.to(torch.float32), test_std.to(torch.float32)
     
     # 构造隐空间增广
-    latent_transform = LatentThreeCropsTransform(noise_std=0.05, scale_range=(0.95, 1.05))
+    latent_transform = LatentThreeCropsTransformSame(noise_std=0.05, scale_range=(0.95, 1.05))
 
     # 构造训练和测试集
     train_set = VAEAugmentedDataset(train_mean, train_std, train_labels, transform=latent_transform)
@@ -256,7 +256,7 @@ def save_model(epoch, model, optimizer, best_loss, filename, msg):
     
 def create_exp_dir(base_dir="./save"):
     """创建基于时间戳的实验文件夹"""
-    timestamp = time.strftime("%Y%m%d-%H%M%S") + '-' + args.dataset + '-' + args.type + '-' + args.noise_type
+    timestamp = time.strftime("%Y%m%d-%H%M%S") + '-' + 'second-' + args.dataset + '-' + args.type + '-' + args.noise_type
     exp_dir = path.join(base_dir, timestamp)
     makedirs(exp_dir, exist_ok=True)
     print(f"Experiment directory created: {exp_dir}")
@@ -300,7 +300,7 @@ def main():
         train_loss = train(train_loader, model, criterion, optimizer, epoch, args)
         print("Train \tEpoch:{}/{}\ttime: {}\tLoss: {}".format(epoch, args.epochs, time.time()-time0, train_loss))
         
-        if epoch % 1 == 0:
+        if epoch % 10 == 0:
             model_path = path.join(exp_dir, f"model_{epoch}.pth")
             save_model(epoch, model, optimizer, train_loss, model_path, msg="Model saved in {} epoch".format(epoch))
             if train_loss < best_loss:
@@ -310,7 +310,7 @@ def main():
     save_model(epoch, model, optimizer, train_loss, last_model_path, msg="Last model saved in {} epoch".format(epoch))
     
     # 对每个模型进行预测
-    for epoch in range(0, args.epochs, 1):
+    for epoch in range(0, args.epochs, 10):
         print("Predicting using the {} model.", format(epoch))
         model_path = path.join(exp_dir, f"model_{epoch}.pth")
         model = load_model(model_path, args)

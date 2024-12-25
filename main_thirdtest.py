@@ -174,7 +174,8 @@ def train(train_loader, model, criterion, optimizer, epoch,  args):
         '''论文核心'''
         # <q,z> + log(1-<q,z>) 
         # 对角线全是-contrast_1 + 除了对角线全是(1-contrast_1).log()
-        contrast_1 = -contrast_1*torch.zeros(bsz, bsz).fill_diagonal_(1).cuda() + ((1-contrast_1).log()) * torch.ones(bsz, bsz).fill_diagonal_(0).cuda()
+        # contrast_1 = -contrast_1*torch.zeros(bsz, bsz).fill_diagonal_(1).cuda() + ((1-contrast_1).log()) * torch.ones(bsz, bsz).fill_diagonal_(0).cuda()
+        contrast_1 = (-2+1e-4)*torch.zeros(bsz, bsz).fill_diagonal_(1).cuda() + ((1-contrast_1).log()) * torch.ones(bsz, bsz).fill_diagonal_(0).cuda()
         contrast_logits = 2 + contrast_1
 
 
@@ -256,7 +257,7 @@ def save_model(epoch, model, optimizer, best_loss, filename, msg):
     
 def create_exp_dir(base_dir="./save"):
     """创建基于时间戳的实验文件夹"""
-    timestamp = time.strftime("%Y%m%d-%H%M%S") + '-' + args.dataset + '-' + args.type + '-' + args.noise_type
+    timestamp = time.strftime("%Y%m%d-%H%M%S") + '-' + 'third-'+ args.dataset + '-' + args.type + '-' + args.noise_type
     exp_dir = path.join(base_dir, timestamp)
     makedirs(exp_dir, exist_ok=True)
     print(f"Experiment directory created: {exp_dir}")

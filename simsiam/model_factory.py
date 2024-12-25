@@ -79,45 +79,42 @@ class BatchNorm1d(nn.Module):
 class SimSiam(nn.Module):
     def __init__(self, emam, args):
         super(SimSiam, self).__init__()
-        self.emam = emam
+        self.emam = emam  # 动量系数
 
-        self.backbone = SimSiam.get_backbone(args.arch)
-        self.backbone_k = SimSiam.get_backbone(args.arch)
-        dim_out, dim_in = self.backbone.fc.weight.shape
-        dim_mlp = 2048
-        self.backbone.fc = nn.Identity()
-        self.backbone_k.fc = nn.Identity()
-
+        self.backbone = SimSiam.get_backbone(args.arch)  # 获取主干网络（哪个ResNet）
+        self.backbone_k = SimSiam.get_backbone(args.arch)  # 获取动量主干网络
+        dim_out, dim_in = self.backbone.fc.weight.shape  # 获取输出和输入维度
+        dim_mlp = 2048  # MLP的维度
+        self.backbone.fc = nn.Identity()  # 去掉全连接层
+        self.backbone_k.fc = nn.Identity()  # 去掉动量全连接层
 
         print('dim in', dim_in)
         print('dim out', dim_out)
-        self.projector = nn.Sequential(nn.Linear(dim_in, dim_mlp), BatchNorm1d(dim_mlp), nn.ReLU(), nn.Linear(dim_mlp, dim_out))
-        self.projector_k = nn.Sequential(nn.Linear(dim_in, dim_mlp), BatchNorm1d(dim_mlp), nn.ReLU(),
-                                       nn.Linear(dim_mlp, dim_out))
+        self.projector = nn.Sequential(nn.Linear(dim_in, dim_mlp), BatchNorm1d(dim_mlp), nn.ReLU(), nn.Linear(dim_mlp, dim_out))  # 投影头
+        self.projector_k = nn.Sequential(nn.Linear(dim_in, dim_mlp), BatchNorm1d(dim_mlp), nn.ReLU(), nn.Linear(dim_mlp, dim_out))  # 动量投影头
 
-        # predictor
+        # 预测头
         self.predictor = nn.Sequential(nn.Linear(dim_out, 512), BatchNorm1d(512), nn.ReLU(), nn.Linear(512, dim_out))
 
         self.encoder = nn.Sequential(
             self.backbone,
             self.projector
-        )
+        )  # 编码器
 
         self.encoder_k = nn.Sequential(
             self.backbone_k,
             self.projector_k
-        )
+        )  # 动量编码器
 
-        self.linear = Linear(nb_classes=args.nb_classes, feat=dim_in)
+        self.linear = Linear(nb_classes=args.nb_classes, feat=dim_in)  # 线性分类器
         self.probability = nn.Sequential(
             self.backbone,
             self.linear
-        )
+        )  # 概率预测
 
         for param_q, param_k in zip(self.encoder.parameters(), self.encoder_k.parameters()):
-            param_k.data.copy_(param_q.data)
-            param_k.requires_grad = False
-
+            param_k.data.copy_(param_q.data)  # 初始化动量编码器参数，使它和编码器参数完全一致
+            param_k.requires_grad = False  # 动量编码器参数不更新
 
     @staticmethod
     def get_backbone(backbone_name):
@@ -125,28 +122,27 @@ class SimSiam(nn.Module):
                 'resnet34': ResNet34(),
                 'resnet50': ResNet50(),
                 'resnet101': ResNet101(),
-                'resnet152': ResNet152()}[backbone_name]
+                'resnet152': ResNet152()}[backbone_name]  # 根据名称获取对应的ResNet模型
 
-    def forward(self, im_aug1, im_aug2, img_weak): # 两个强变换的图片，一个弱变换的图片
-        output = self.probability(img_weak)
+    def forward(self, im_aug1, im_aug2, img_weak):  # 两个强变换的图片，一个弱变换的图片
+        output = self.probability(img_weak)  # 计算弱变换图片的概率
 
-        z1 = self.encoder(im_aug1)
-        p1 = self.predictor(z1)
-        p1 = nn.functional.normalize(p1, dim=1) # 每个像素点的通道归一化
+        z1 = self.encoder(im_aug1)  # 编码第一个强变换图片
+        p1 = self.predictor(z1)  # 预测第一个强变换图片
+        p1 = nn.functional.normalize(p1, dim=1)  # 每个像素点的通道归一化
 
         with torch.no_grad():  # no gradient to keys, 不污染
-            m = self.emam
+            m = self.emam  # 动量系数
             for param_q, param_k in zip(self.encoder.parameters(), self.encoder_k.parameters()):
-                param_k.data = param_k.data * m + param_q.data * (1. - m)
+                param_k.data = param_k.data * m + param_q.data * (1. - m)  # 更新动量编码器参数
 
-        z2 = self.encoder_k(im_aug2)
-        z2 = nn.functional.normalize(z2, dim=1)
+        z2 = self.encoder_k(im_aug2)  # 编码第二个强变换图片
+        z2 = nn.functional.normalize(z2, dim=1)  # 每个像素点的通道归一化
 
-
-        return p1,z2,output
+        return p1, z2, output  # 返回预测结果和编码结果
 
     def forward_test(self, x):
-        return self.probability(x)
+        return self.probability(x)  # 测试时只返回概率
 
 
 

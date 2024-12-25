@@ -5,6 +5,21 @@ import random
 
 import torch
 
+
+class LatentThreeCropsTransformSame:
+    """在隐空间中生成三个变换后的版本"""
+    def __init__(self, noise_std=0.1, scale_range=(0.9, 1.1)):
+        self.noise_std = noise_std
+        self.scale_range = scale_range
+
+    def __call__(self, mean, std):
+        # 原始版本
+        crop1 = mean.clone()
+        crop2 = mean.clone()
+        crop3 = mean.clone()
+
+        return crop2, crop3, crop1
+    
 class LatentThreeCropsTransform:
     """在隐空间中生成三个变换后的版本"""
     def __init__(self, noise_std=0.1, scale_range=(0.9, 1.1)):
