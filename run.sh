@@ -51,19 +51,19 @@ python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagen
 
 '''============================================第三轮======================================================='''
 
-### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[1] 改变tau看结果，1轮存一次 
+### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[1] 改变tau看结果，10轮存一次 
 python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet100 --lr 0.02 --lamb 8.0 --tau 0.25 --r 0.4 --type gce --beta 0.6 --gpu 7
 
-### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[2] 改变tau看结果，1轮存一次 
+### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[2] 改变tau看结果，10轮存一次 
 python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet100 --lr 0.02 --lamb 8.0 --tau 0.24 --r 0.4 --type gce --beta 0.6 --gpu 7
 
-### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[3] 改变tau看结果，1轮存一次 
+### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[3] 改变tau看结果，10轮存一次 
 python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet100 --lr 0.02 --lamb 8.0 --tau 0.26 --r 0.4 --type gce --beta 0.6 --gpu 7
 
-### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[4] 改变tau看结果，1轮存一次 
+### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[4] 改变tau看结果，10轮存一次 
 python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet100 --lr 0.02 --lamb 8.0 --tau 0.27 --r 0.4 --type gce --beta 0.6 --gpu 5
 
-### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[5] 改变tau看结果，1轮存一次 
+### sym noise ratio = 40% CIFAR100 GCE 20241214-225000 tmux[5] 改变tau看结果，10轮存一次 
 python -u main_firsttest.py --data_root ./data --exp_dir ./save --dataset imagenet100 --lr 0.02 --lamb 8.0 --tau 0.23 --r 0.4 --type gce --beta 0.6 --gpu 5
 
 ### sym noise ratio = 40% CIFAR100 GCE 20241214-224103 tmux[6] 修改了loss函数，和论文一致

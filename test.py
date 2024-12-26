@@ -16,3 +16,7 @@ print(contrast_1)
 contrast_logits = 2 + contrast_1
 contrast_1 = (-2+1e-4)*torch.zeros(4, 4).fill_diagonal_(1)
 print(contrast_1+2)
+
+epoch = 2
+s = '1'+f"model_{epoch}"+'1'
+print(s)

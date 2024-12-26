@@ -300,7 +300,7 @@ def main():
         train_loss = train(train_loader, model, criterion, optimizer, epoch, args)
         print("Train \tEpoch:{}/{}\ttime: {}\tLoss: {}".format(epoch, args.epochs, time.time()-time0, train_loss))
         
-        if epoch % 1 == 0:
+        if epoch > 200 and epoch % 10 == 0:
             model_path = path.join(exp_dir, f"model_{epoch}.pth")
             save_model(epoch, model, optimizer, train_loss, model_path, msg="Model saved in {} epoch".format(epoch))
             if train_loss < best_loss:
@@ -322,7 +322,7 @@ def main():
     best_model_path = path.join(exp_dir, f"model_{best_epoch}.pth")
     best_model = load_model(best_model_path, args)
     best_results = predict_test_set(test_loader, best_model)
-    save_predictions_to_csv(best_results, path.join(exp_dir, timestamp+"-best_model_predictions.csv"))
+    save_predictions_to_csv(best_results, path.join(exp_dir, timestamp+f"model_{epoch}"+"-best_model_predictions.csv"))
     print("Best epoch is {}.", format(best_epoch))
 
     # 使用最后的模型进行预测
